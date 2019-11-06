@@ -7,13 +7,26 @@ nodeSelector: {"beta.kubernetes.io/arch": "amd64"}
 tolerations: []
 affinity: {}
 
-# Zookeeper's Configruation
+## Zookeeper's Configruation
 # Zookeeper service port
+# the port to listen for client connections
 clientPort: 2181
+# ZooKeeper server use this port to connect folowers to the leader
 serverPort: 2888
+# ZooKeeper use the this port for leader election
 leaderElectionPort: 3888
 
-# data and log path
+## communication time settings
+# the basic time unit in milliseconds used by ZooKeeper. It is used to do heartbeats and the minimum session timeout will be twice the tickTime.
+tickTime: 2000
+# InitLimit is timeouts ZooKeeper uses to limit the length of time the ZooKeeper servers in quorum have to connect to a leader
+initLimit: 5
+# The entry syncLimit limits how far out of date a server can be from a leader.
+syncLimit: 2
+
+## data and log path
+# the location to store the in-memory database snapshots and, unless specified otherwise, the transaction log of updates to the database.
+# the dataDis is put on "myid" file
 dataDir: /var/lib/zookeeper
 logDir: /var/log/zookeeper
 

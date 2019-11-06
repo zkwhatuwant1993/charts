@@ -25,7 +25,7 @@ Support Matrix
 | Windows          | Development and Production | Development and Production | Not Supported              | Not Supported              |
 | Mac OS X         | Development Only           | Development Only           | Not Supported              | Not SupRequired Softwareported              |
 
-Required Software
+### Required Software
 
 Java 1.7+ (JDK 7+).Three ZooKeeper servers is the minimum recommended size for an ensemble, and we also recommend that they run on separate machines.
 For more information,see [the zookeeper's admin docs](http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_minimumConfiguration)
