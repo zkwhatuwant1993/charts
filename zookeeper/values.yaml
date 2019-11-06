@@ -1,12 +1,33 @@
 # Default values for zookeeper.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+# Duplicate this file and put your customization here
 
-replicaCount: 1
+## Zookeeper Node selector and tolerations for pod assignment
+# ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+nodeSelector: {"beta.kubernetes.io/arch": "amd64"}
+tolerations: []
+affinity: {}
 
+# Zookeeper's Configruation
+# Zookeeper service port
+clientPort: 2181
+serverPort: 2888
+leaderElectionPort: 3888
+
+# data and log path
+dataDir: /var/lib/zookeeper
+logDir: /var/log/zookeeper
+
+# statefulset spec
+# ref: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.15/#statefulsetspec-v1-apps
+podManagementPolicy: 
+replicas: 3
+updateStrategy: 
+volumeClaimTemplates:
+# 
 image:
-  repository: nginx
-  tag: stable
+  #repository: 
+  name: "zookeeper"
+  tag: "3.4.14"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -23,17 +44,15 @@ serviceAccount:
 podSecurityContext: {}
   # fsGroup: 2000
 
-securityContext: {}
+securityContext: 
+  runAsUser: 1000
+  fsGroup: 1000
   # capabilities:
   #   drop:
   #   - ALL
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
   # runAsUser: 1000
-
-service:
-  type: ClusterIP
-  port: 80
 
 ingress:
   enabled: false
@@ -49,11 +68,8 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
+# the request and limit resources for eche instance
 resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
   # limits:
   #   cpu: 100m
   #   memory: 128Mi
@@ -61,8 +77,4 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-nodeSelector: {}
 
-tolerations: []
-
-affinity: {}

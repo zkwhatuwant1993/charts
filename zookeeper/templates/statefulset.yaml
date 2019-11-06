@@ -1,0 +1,17 @@
+appVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "zookeeper.fullname" . }}
+  labels:
+    {{ include "zookeeper.labels" . | indent 4 }}
+spec:
+  podManagementPolicy: 
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "zookeeper.name" . }}
+      app.kubernetes.io/instance: app.kubernetes.io/instance: {{ .Release.Name }}
+  updateStrategy: 
+  containers:
+  resources:
+  volumeClaimTemplates:
