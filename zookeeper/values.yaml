@@ -1,51 +1,76 @@
 # Default values for zookeeper.
 # Duplicate this file and put your customization here
 
-## Zookeeper Node selector and tolerations for pod assignment
-# ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-nodeSelector: {"beta.kubernetes.io/arch": "amd64"}
-tolerations: []
-affinity: {}
-
-## Zookeeper's Configruation
+## Zookeeper's Configruation. All configs will use to create ConfigMap Object and mount as zookper config file.
+zookeeper:
 # Zookeeper service port
 # the port to listen for client connections
-clientPort: 2181
+  clientPort: 2181 
 # ZooKeeper server use this port to connect folowers to the leader
-serverPort: 2888
+  serverPort: 2888
 # ZooKeeper use the this port for leader election
-leaderElectionPort: 3888
+  leaderElectionPort: 3888
 
 ## communication time settings
 # the basic time unit in milliseconds used by ZooKeeper. It is used to do heartbeats and the minimum session timeout will be twice the tickTime.
-tickTime: 2000
+  tickTime: 2000
 # InitLimit is timeouts ZooKeeper uses to limit the length of time the ZooKeeper servers in quorum have to connect to a leader
-initLimit: 5
+  initLimit: 5
 # The entry syncLimit limits how far out of date a server can be from a leader.
-syncLimit: 2
+  syncLimit: 2
 
 ## data and log path
 # the location to store the in-memory database snapshots and, unless specified otherwise, the transaction log of updates to the database.
 # the dataDis is put on "myid" file
-dataDir: /var/lib/zookeeper
-logDir: /var/log/zookeeper
+  dataDir: /var/lib/zookeeper
+# This option will direct the machine to write the transaction log to the dataLogDir rather than the dataDir. This allows a dedicated log device to be used, and helps avoid competition between logging and snaphots.
+  logDir: /var/log/zookeeper
 
-# statefulset spec
-# ref: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.15/#statefulsetspec-v1-apps
-podManagementPolicy: 
-replicas: 3
-updateStrategy: 
-volumeClaimTemplates:
+
+## statefulset spec
 # 
+# ref: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.15/#statefulsetspec-v1-apps
+
+## StatefulSet allows you to relax its ordering guarantees while preserving its uniqueness and identity guarantees.
+# ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies
+podManagementPolicy: OrderedReady
+
+## replicas is the desired number of replicas of the given Template. These are replicas in the sense that they are instantiations of the same Template, but individual replicas also have a consistent identity. If unspecified, defaults to 1.
+replicas: 3
+
+## StatefulSet’s .spec.updateStrategy field allows you to configure and disable automated rolling updates for containers, labels, resource request/limits, and annotations for the Pods in a StatefulSet.
+updateStrategy: 
+  type: "RollingUpdate"
+
+## volumeClaimTemplates is a list of claims that pods are allowed to reference. 
+## The StatefulSet controller is responsible for mapping network identities to claims in a way that maintains the identity of a pod.
+## Every claim in this list must have at least one matching (by name) volumeMount in one container in the template. 
+## A claim in this list takes precedence over any volumes in the template, with the same name.
+# 
+volumeClaimTemplates:
+  # If true, use a Persistent Volume Cliam, If false, use emptyDir. For a storage careless statefulset, it is recommanded setting true.
+  enable: true
+  dataPersistence:
+    enable: true
+    # storgeClass: "-"
+    annotations: {}
+    accessModes:
+    - ReadWriteOnce
+    size: 20Gi
+  logPersistence:
+    enable: true
+    # storageClass: "-"
+    annotations: {}
+    accessModes:
+    - ReadWriteOnce
+    size: 50Gi
+
+# PodTemplate
 image:
-  #repository: 
+  registry: docker.io
   name: "zookeeper"
   tag: "3.4.14"
   pullPolicy: IfNotPresent
-
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -82,12 +107,16 @@ ingress:
   #      - chart-example.local
 
 # the request and limit resources for eche instance
-resources: {}
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+resources: 
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
 
-
+## Zookeeper Node selector and tolerations for pod assignment
+# ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+nodeSelector: {"beta.kubernetes.io/arch": "amd64"}
+tolerations: []
+affinity: 
