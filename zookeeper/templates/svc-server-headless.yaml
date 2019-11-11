@@ -3,6 +3,7 @@ kind: Service
 metadata:
   name: {{ include "zookeeper.fullname" . }}-sever-headless
   labels:
+    app.kubernetes.io/component: zookeeper
 {{ include "zookeeper.labels" . | indent 4 }}
 spec:
   type: ClusterIP
@@ -17,3 +18,4 @@ spec:
   selector:
     app.kubernetes.io/name: {{ include "zookeeper.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: zookeeper

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "zookeeper.fullname" . }}-config
+  labels:
+    app.kubernetes.io/name: {{ include "zookeeper.name" . }}
+    app.kubernetes.io/instance: app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  clientPort: {{ .Values.zookeeper.clientPort | default "2181" }}
+  serverPort: {{ .Values.zookeeper.serverPort | default "2888" }}
+  leaderElectionPort: {{ .Values.zookeeper.leaderElectionPort | default "3888" }}
+  tickTime: {{ .Values.zookeeper.tickTime | default "1000" }}
+  initLimit: {{ .Values.zookeeper.initLimit | default "5" }}
+  syncLimit: {{ .Values.zookeeper.syncLimit | default "2" }}

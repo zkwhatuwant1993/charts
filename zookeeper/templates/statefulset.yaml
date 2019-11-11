@@ -3,6 +3,7 @@ kind: StatefulSet
 metadata:
   name: {{ include "zookeeper.fullname" . }}
   labels:
+    app.kubernetes.io/component: zookeeper
     {{ include "zookeeper.labels" . | indent 4 }}
 spec:
   podManagementPolicy: {{ .Values.podManagementPolicy }}
@@ -11,14 +12,17 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ include "zookeeper.name" . }}
       app.kubernetes.io/instance: app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: zookeeper
   serviceName: {{ include "zookeeper.fullname" . }}-sever-headless
   updateStrategy:
     type: {{ .Values.updateStrategy.type }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "zookeeper.name" . }}
-        app.kubernetes.io/instance: app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/name: {{ template "zookeeper.name" . }}
+        helm.sh/chart: {{ template "zookeeper.chart" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: zookeeper
     spec:
       {{- if .Values.affinity }}
       affinity:
@@ -55,13 +59,12 @@ spec:
           containerPort: {{ .Values.zookeeper.serverPort | default "2888" }}
         - name: leader-election
           containerPort: {{ .Values.zookeeper.leaderElectionPort | default "3888" }}
-        command:
-        - sh
-        - "-c"
-        - "bin/zkServer.sh start"
         {{- if .Values.livenessProbe.enable }}
+        env:
+        - name: ZOO_LOG4J_PROP
         livenessProbe:
-          - ["sh", "-c", "/bin/zkCli.sh -server 127.0.0.1:2181 && ls /"]
+          tcpSocket:
+            port: client
           failureThreshold: {{ .Values.livenessProbe.enable.failureThreshold }}
           periodSeconds: {{ .Values.livenessProbe.enable.periodSeconds }}
           successThreshold: {{ .Values.livenessProbe.enable.successThreshold }}
@@ -70,9 +73,8 @@ spec:
         {{- end }}
         {{- if .Values.readinessProbe.enable }}
         readinessProbe:
-          exec:
-            command:
-            - ["sh", "-c", "/bin/zkCli.sh -server 127.0.0.1:2181 && ls /"]
+          tcpSocket:
+            port: client
           failureThreshold: {{ .Values.readinessProbe.enable.failureThreshold }}
           periodSeconds: {{ .Values.readinessProbe.enable.periodSeconds }}
           successThreshold: {{ .Values.readinessProbe.enable.successThreshold }}
@@ -89,28 +91,6 @@ spec:
         resources:
           {{ toYaml .Values.resources | indent 10 }}
         {{- end }}
-      volumes:
-      {{- if .Values.volumeClaimTemplates.enable }}
-      - name: {{ include "zookeeper.fullname" . }}-data
-        {{- if .Values.volumeClaimTemplates.dataPersistence.enable }}
-        persistentVolumeClaim:
-          claimName: {{ include "zookeeper.fullname" . }}-data
-        {{- else }}
-        emptyDir: {}
-        {{- end }}
-      - name: {{ include "zookeeper.fullname" .}}-log
-        {{- if .Values.volumeClaimTemplates.logPersistence.enable }}
-        persistentVolumeClaim:
-          claimName: {{ include "zookeeper.fullname" . }}-log
-        {{- else }}
-        emptyDir: {}
-        {{- end }}
-      {{- else }}
-      - name: {{ include "zookeeper.fullname" . }}-data
-        emptyDir: {}
-      - name: {{ include "zookeeper.fullname" . }}-log
-        emptyDir: {}
-      {{- end }}
       
   {{- if .Values.volumeClaimTemplates.enable }}
   volumeClaimTemplates:
