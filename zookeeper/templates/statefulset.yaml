@@ -5,13 +5,148 @@ metadata:
   labels:
     {{ include "zookeeper.labels" . | indent 4 }}
 spec:
-  podManagementPolicy: 
+  podManagementPolicy: {{ .Values.podManagementPolicy }}
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "zookeeper.name" . }}
       app.kubernetes.io/instance: app.kubernetes.io/instance: {{ .Release.Name }}
-  updateStrategy: 
-  containers:
-  resources:
+  serviceName: {{ include "zookeeper.fullname" . }}-sever-headless
+  updateStrategy:
+    type: {{ .Values.updateStrategy.type }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "zookeeper.name" . }}
+        app.kubernetes.io/instance: app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      {{- if .Values.affinity }}
+      affinity:
+        {{ toYaml .Values.affinity | intent 8 }}
+      {{- end }}
+      {{- if .Values.nodeSelector }}
+      nodeSelector:
+        {{ toYaml .Values.tolerations | intent 8 }}
+      {{- end }}
+      {{- if .Values.tolerations }}
+      tolerations:
+        {{ toYaml .Values.tolerations | intent 8 }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets}}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+      - name: {{ . | quote}}
+      {{- end }}
+      {{- end }}
+      {{- if .Values.SecurityContext }}
+      securityContext: 
+        {{ toYaml .Values.podSecurityContext | indent 8 }}
+      {{- end }}
+      serviceAccount: {{ include "zookeeper.serviceAccountName" . }}
+      restartPolicy: Always
+      containers:
+      - name:
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        image: "{{ .Values.image.registry }}/{{ .Values.image.name }}:{{ .Values.image.tag }}"
+        ports:
+        - name: client
+          containerPort: {{ .Values.zookeeper.clientPort | default "2181" }}
+        - name: server
+          containerPort: {{ .Values.zookeeper.serverPort | default "2888" }}
+        - name: leader-election
+          containerPort: {{ .Values.zookeeper.leaderElectionPort | default "3888" }}
+        command:
+        - sh
+        - "-c"
+        - "bin/zkServer.sh start"
+        {{- if .Values.livenessProbe.enable }}
+        livenessProbe:
+          - ["sh", "-c", "/bin/zkCli.sh -server 127.0.0.1:2181 && ls /"]
+          failureThreshold: {{ .Values.livenessProbe.enable.failureThreshold }}
+          periodSeconds: {{ .Values.livenessProbe.enable.periodSeconds }}
+          successThreshold: {{ .Values.livenessProbe.enable.successThreshold }}
+          initialDelaySeconds: {{ .Values.livenessProbe.enable.initialDelaySeconds }}
+          timeoutSeconds: {{ .Values.livenessProbe.enable.timeoutSeconds }}
+        {{- end }}
+        {{- if .Values.readinessProbe.enable }}
+        readinessProbe:
+          exec:
+            command:
+            - ["sh", "-c", "/bin/zkCli.sh -server 127.0.0.1:2181 && ls /"]
+          failureThreshold: {{ .Values.readinessProbe.enable.failureThreshold }}
+          periodSeconds: {{ .Values.readinessProbe.enable.periodSeconds }}
+          successThreshold: {{ .Values.readinessProbe.enable.successThreshold }}
+          initialDelaySeconds: {{ .Values.readinessProbe.enable.initialDelaySeconds }}
+          timeoutSeconds: {{ .Values.readinessProbe.enable.timeoutSeconds }}
+        {{- end }}
+        volumeMounts:
+        - name: {{ include "zookeeper.fullname" .}}-data
+          mountPath: {{ .Values.zookpeer.dataDir | default "/var/lib/zookeeper" }}
+        - name: {{ include "zookeeper.fullname" .}}-log
+          mountPath: {{ .Values.zookpeer.logDir | default "/var/log/zookeeper" }}
+        securityContext:
+        {{- if .Values.resources }}
+        resources:
+          {{ toYaml .Values.resources | indent 10 }}
+        {{- end }}
+      volumes:
+      {{- if .Values.volumeClaimTemplates.enable }}
+      - name: {{ include "zookeeper.fullname" . }}-data
+        {{- if .Values.volumeClaimTemplates.dataPersistence.enable }}
+        persistentVolumeClaim:
+          claimName: {{ include "zookeeper.fullname" . }}-data
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      - name: {{ include "zookeeper.fullname" .}}-log
+        {{- if .Values.volumeClaimTemplates.logPersistence.enable }}
+        persistentVolumeClaim:
+          claimName: {{ include "zookeeper.fullname" . }}-log
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      {{- else }}
+      - name: {{ include "zookeeper.fullname" . }}-data
+        emptyDir: {}
+      - name: {{ include "zookeeper.fullname" . }}-log
+        emptyDir: {}
+      {{- end }}
+      
+  {{- if .Values.volumeClaimTemplates.enable }}
   volumeClaimTemplates:
+  {{- if .Values.volumeClaimTemplates.dataPersistence.enable }}
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: {{ include "zookeeper.fullname" .}}-data
+    sepc:
+      {{- if .Values.volumeClaimTemplates.dataPersistence.storageClassName }}
+      storageClassName: {{ .Values.volumeClaimTemplates.dataPersistence.storageClassName }}
+      {{- end }}
+      accessModes:
+      {{ toYaml .Values.volumeClaimTemplates.dataPersistence.accessModes | indent 6}}
+      resources:
+        request: {{ .Values.volumeClaimTemplates.dataPersistence.size }}
+      selector:
+        app.kubernetes.io/name: {{ include "zookeeper.name" . }}
+        app.kubernetes.io/instance: app.kubernetes.io/instance: {{ .Release.Name }}
+  {{- end }}
+  {{- if .Values.volumeClaimTemplates.logPersistence.enable}}
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: {{ include "zookeeper.fullname" .}}-log
+    sepc:
+      {{- if .Values.volumeClaimTemplates.logPersistence.storageClassName }}
+      storageClassName: {{ .Values.volumeClaimTemplates.logPersistence.storageClassName }}
+      {{- end }}
+      accessModes:
+      {{ toYaml .Values.volumeClaimTemplates.logPersistence.accessModes | indent 6 }}
+      resources:
+        request: {{ .Values.volumeClaimTemplates.logPersistence.size }}
+      selector:
+        matchLabels:
+          app.kubernetes.io/name: {{ include "zookeeper.name" . }}
+          app.kubernetes.io/instance: app.kubernetes.io/instance: {{ .Release.Name }}
+  {{- end }}
+  {{- end }}

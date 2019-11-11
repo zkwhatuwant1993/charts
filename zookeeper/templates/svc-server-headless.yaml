@@ -1,19 +1,19 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "zookeeper.fullname" . }}-server
+  name: {{ include "zookeeper.fullname" . }}-sever-headless
   labels:
 {{ include "zookeeper.labels" . | indent 4 }}
 spec:
   type: ClusterIP
+  clusterIP: None
   ports:
     - port: {{ .Values.serverPort }}
       protocol: TCP
-      name: server
-    - port: {{ .Values.leaderElectionPort }}
-      protocol: TCP
+      name: sever
+    - port: {{ .Values.leaderElectionPort}}
+      protocal: TCP
       name: leader-election
   selector:
     app.kubernetes.io/name: {{ include "zookeeper.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
-  clusterIP: None
